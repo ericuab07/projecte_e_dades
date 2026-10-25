@@ -20,26 +20,36 @@ class Gallery:
 
     def find_uuid(self, path):
         # Funció auxiliar: busca el UUID d'un path del JSON
-        # El JSON pot portar carpetes de més al davant ("generated_images/a.png"),
+        # El JSON porta el path des de fora de l'arrel ("generated_images/a.png"),
         # però la col·lecció guarda els paths relatius a l'arrel ("a.png").
-        # Per això provem el path sencer i després li anem traient carpetes del davant.
+        candidates = []
+
+        # 1. El path canònic de cfg (relatiu a ROOT_DIR i amb "/")
+        try:
+            candidates.append(cfg.get_canonical_pathfile(path))
+        except Exception:
+            pass
+
+        # 2. El path tal com és i, després, traient-li carpetes del davant
         parts = path.replace("\\", "/").split("/")
         for i in range(len(parts)):
-            candidate = "/".join(parts[i:])     # ex: "generated_images/a.png", després "a.png"
+            candidates.append("/".join(parts[i:]))      # ex: "generated_images/a.png", després "a.png"
+
+        for candidate in candidates:
             uuid = self.image_id.get_uuid(candidate)
             if uuid is not None:
                 return uuid
         return None
 
     def load_file(self, file):
-        # Llegim el fitxer JSON
+        # Llegim el fitxer JSON. No retorna res
         try:
             f = open(file, "r", encoding="utf-8")
             data = json.load(f)
             f.close()
         except Exception as error:
             print("ERROR: no es pot llegir la galeria", file, ":", error)
-            return None
+            return
 
         self.gallery_name = data.get("gallery_name", "")
         self.description = data.get("description", "")

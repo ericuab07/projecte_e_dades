@@ -12,6 +12,18 @@ from PIL import Image
 
 class ImageData:
 
+    # Noms amb què pot venir cada camp dins del PNG (sempre en minúscules i amb "_")
+    FIELDS = {
+        "prompt": ["prompt"],
+        "seed": ["seed"],
+        "cfg_scale": ["cfg_scale", "cfg", "cfgscale", "guidance_scale"],
+        "steps": ["steps", "num_inference_steps"],
+        "sampler": ["sampler", "sampler_name"],
+        "model": ["model", "model_name"],
+        "generated": ["generated"],
+        "created_date": ["created_date", "created", "date"],
+    }
+
     def __init__(self):
         self.images = {}        # uuid -> diccionari amb les dades de la imatge
 
@@ -30,47 +42,82 @@ class ImageData:
     def find_path(self, file):
         # Funció auxiliar: busca l'arxiu al disc i en retorna el path complet
         root = cfg.get_root()
+
+        # Treiem els "../" i la carpeta arrel del davant (ex: "../generated_images/a.png" -> "a.png")
+        clean = file.replace("\\", "/")
+        root_name = os.path.basename(os.path.normpath(cfg.ROOT_DIR))
+        changed = True
+        while changed:
+            changed = False
+            for prefix in ("./", "../", root_name + "/"):
+                if clean.startswith(prefix):
+                    clean = clean[len(prefix):]
+                    changed = True
+
         candidates = [
             os.path.join(root, file),                       # ex: root + "cyberpunk/a.png"
-            os.path.normpath(os.path.join(root, file)),     # ex: root + "../a.png" -> "a.png" a dalt de root
+            os.path.normpath(os.path.join(root, file)),     # el mateix, sense els "../"
             file,                                           # el path tal com ens l'han donat
+            os.path.join(root, clean),                      # ex: root + "a.png"
+            os.path.join(root, os.path.basename(file)),     # només el nom de l'arxiu
         ]
         for candidate in candidates:
             if os.path.isfile(candidate):
                 return candidate
         return candidates[0]        # si no hi és enlloc, retornem el primer perquè l'error el mostri
 
+    def read_metadata(self, path):
+        # Funció auxiliar: llegeix els camps del PNG i els retorna com a {nom: String}
+        raw = None
+        reader = getattr(cfg, "read_png_metadata", None)
+        if reader is not None:
+            raw = reader(path)              # si cfg ja sap llegir-les, la fem servir
+
+        if not raw:
+            # Si no, llegim nosaltres els "text chunks" del PNG
+            img = Image.open(path)
+            raw = {}
+            for key, value in img.info.items():
+                if isinstance(value, str):
+                    raw[key] = value
+            for key, value in getattr(img, "text", {}).items():
+                raw[key] = value
+            img.close()
+
+        # Normalitzem els noms: "CFG Scale", "CFG_Scale" i "cfg_scale" són el mateix camp
+        metadata = {}
+        for key, value in raw.items():
+            name = str(key).strip().lower().replace(" ", "_").replace("-", "_")
+            metadata[name] = str(value)
+        return metadata
+
     def load_metadata(self, uuid):
+        # No retorna res (si hi ha algun problema, ho diu per pantalla)
         if uuid not in self.images:
             print("ERROR: la imatge", uuid, "no existeix.")
-            return None
+            return
 
         image = self.images[uuid]
         path = self.find_path(image["file"])        # path complet al disc
 
         try:
-            metadata = cfg.read_png_metadata(path)
-            if not metadata:
-                metadata = {}
+            metadata = self.read_metadata(path)
             img = Image.open(path)
             width, height = img.size
             img.close()
         except Exception as error:
             print("ERROR: no es pot llegir", path, ":", error)
-            return False
+            return
 
-        # Si un camp no hi és, posem "None"
-        image["prompt"] = str(metadata.get("Prompt", "None"))
-        image["seed"] = str(metadata.get("Seed", "None"))
-        image["cfg_scale"] = str(metadata.get("CFG_Scale", "None"))
-        image["steps"] = str(metadata.get("Steps", "None"))
-        image["sampler"] = str(metadata.get("Sampler", "None"))
-        image["model"] = str(metadata.get("Model", "None"))
-        image["generated"] = str(metadata.get("Generated", "None"))
-        image["created_date"] = str(metadata.get("Created_Date", "None"))
+        # Si un camp no hi és (o està buit), posem "None"
+        for field, names in self.FIELDS.items():
+            image[field] = "None"
+            for name in names:
+                if metadata.get(name, "") != "":
+                    image[field] = metadata[name]
+                    break
         image["width"] = width
         image["height"] = height
-        return True
 
     # ---- Funcions per consultar ----
     # Si el UUID no existeix, totes retornen None (com get_filename)
