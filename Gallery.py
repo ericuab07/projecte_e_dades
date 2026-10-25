@@ -18,6 +18,19 @@ class Gallery:
         self.created_date = ""
         self.images = []            # llista d'UUID, en ordre
 
+    def find_uuid(self, path):
+        # Funció auxiliar: busca el UUID d'un path del JSON
+        # El JSON pot portar carpetes de més al davant ("generated_images/a.png"),
+        # però la col·lecció guarda els paths relatius a l'arrel ("a.png").
+        # Per això provem el path sencer i després li anem traient carpetes del davant.
+        parts = path.replace("\\", "/").split("/")
+        for i in range(len(parts)):
+            candidate = "/".join(parts[i:])     # ex: "generated_images/a.png", després "a.png"
+            uuid = self.image_id.get_uuid(candidate)
+            if uuid is not None:
+                return uuid
+        return None
+
     def load_file(self, file):
         # Llegim el fitxer JSON
         try:
@@ -26,7 +39,7 @@ class Gallery:
             f.close()
         except Exception as error:
             print("ERROR: no es pot llegir la galeria", file, ":", error)
-            return False
+            return None
 
         self.gallery_name = data.get("gallery_name", "")
         self.description = data.get("description", "")
@@ -35,17 +48,12 @@ class Gallery:
 
         # Per cada path del JSON busquem el seu UUID
         for path in data.get("images", []):
-            uuid = self.image_id.get_uuid(path)
-            # El JSON pot portar "generated_images/" al davant; si no el trobem, el traiem
-            prefix = cfg.ROOT_DIR + "/"
-            if uuid is None and path.startswith(prefix):
-                uuid = self.image_id.get_uuid(path[len(prefix):])
+            uuid = self.find_uuid(path)
 
             if uuid is None:
                 print("AVIS: la imatge", path, "no existeix. S'ignora.")
             else:
                 self.images.append(uuid)
-        return True
 
     def show(self, mode=None):
         if mode is None:
@@ -58,14 +66,14 @@ class Gallery:
         self.images.append(uuid)
 
     def remove_first_image(self):
-        if len(self.images) == 0:
-            return None
-        return self.images.pop(0)
+        # Treu la primera imatge (si n'hi ha). No retorna res
+        if len(self.images) > 0:
+            self.images.pop(0)
 
     def remove_last_image(self):
-        if len(self.images) == 0:
-            return None
-        return self.images.pop()
+        # Treu l'última imatge (si n'hi ha). No retorna res
+        if len(self.images) > 0:
+            self.images.pop()
 
     def get_uuids(self):
         return list(self.images)

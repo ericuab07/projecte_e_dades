@@ -27,13 +27,26 @@ class ImageData:
         if uuid in self.images:
             del self.images[uuid]
 
+    def find_path(self, file):
+        # Funció auxiliar: busca l'arxiu al disc i en retorna el path complet
+        root = cfg.get_root()
+        candidates = [
+            os.path.join(root, file),                       # ex: root + "cyberpunk/a.png"
+            os.path.normpath(os.path.join(root, file)),     # ex: root + "../a.png" -> "a.png" a dalt de root
+            file,                                           # el path tal com ens l'han donat
+        ]
+        for candidate in candidates:
+            if os.path.isfile(candidate):
+                return candidate
+        return candidates[0]        # si no hi és enlloc, retornem el primer perquè l'error el mostri
+
     def load_metadata(self, uuid):
         if uuid not in self.images:
             print("ERROR: la imatge", uuid, "no existeix.")
-            return False
+            return None
 
         image = self.images[uuid]
-        path = os.path.join(cfg.get_root(), image["file"])      # path complet al disc
+        path = self.find_path(image["file"])        # path complet al disc
 
         try:
             metadata = cfg.read_png_metadata(path)
@@ -60,6 +73,7 @@ class ImageData:
         return True
 
     # ---- Funcions per consultar ----
+    # Si el UUID no existeix, totes retornen None (com get_filename)
 
     def get_filename(self, uuid):
         if uuid not in self.images:
@@ -68,7 +82,7 @@ class ImageData:
 
     def get_dimensions(self, uuid):
         if uuid not in self.images:
-            return (-1, -1)
+            return None
         return (self.images[uuid]["width"], self.images[uuid]["height"])
 
     def get_prompt(self, uuid):
@@ -96,9 +110,9 @@ class ImageData:
         return self.get_field(uuid, "created_date")
 
     def get_field(self, uuid, field):
-        # Funció auxiliar: retorna un camp d'una imatge, o "None" si la imatge no existeix
+        # Funció auxiliar: retorna un camp d'una imatge, o None si la imatge no existeix
         if uuid not in self.images:
-            return "None"
+            return None
         return self.images[uuid][field]
 
     def get_uuids(self):

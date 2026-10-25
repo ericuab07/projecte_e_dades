@@ -35,17 +35,24 @@ class SearchMetadata:
         return self.search(self.data.get_generated, sub)
 
     def dimensions(self, width, height):
+        # Si ens passen alguna cosa que no és un número, no pot coincidir cap imatge
+        try:
+            wanted = (int(width), int(height))
+        except (ValueError, TypeError):
+            return []
+
         result = []
         for uuid in self.data.get_uuids():
-            if self.data.get_dimensions(uuid) == (int(width), int(height)):
+            if self.data.get_dimensions(uuid) == wanted:
                 result.append(uuid)
         return result
 
     def and_operator(self, list1, list2):
-        # Imatges que són a les dues llistes
+        # Imatges que són a les dues llistes (en l'ordre de list1, sense repetir)
+        in_list2 = set(list2)
         result = []
         for uuid in list1:
-            if uuid in list2 and uuid not in result:
+            if uuid in in_list2 and uuid not in result:
                 result.append(uuid)
         return result
 
@@ -63,7 +70,10 @@ class SearchMetadata:
         result = []
         for uuid in self.data.get_uuids():
             value = get_field(uuid)
-            if value != "None" and str(sub) in value:
+            # Els camps buits ("None") i les imatges sense dades no compten
+            if value is None or value == "None":
+                continue
+            if str(value).find(str(sub)) >= 0:
                 result.append(uuid)
         return result
 
