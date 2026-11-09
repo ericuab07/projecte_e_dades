@@ -3,6 +3,7 @@
 ImageData.py : Func3 - metadades de les imatges
 Per cada UUID guardem un diccionari amb el path, les dimensions i les metadades.
 Tot són Strings i "None" vol dir "camp buit".
+estructura: diccionari de diccionaris
 """
 
 import os
