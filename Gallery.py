@@ -2,6 +2,7 @@
 """
 Gallery.py : Func5 i Func7 - galeries d'imatges
 Una galeria és una llista ordenada d'UUID.
+estructura: llista (list)
 """
 
 import os
