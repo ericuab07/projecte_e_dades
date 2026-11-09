@@ -2,6 +2,7 @@
 """
 ImageFiles.py : Func1 - llistat d'imatges PNG
 Guarda quins arxius PNG hi ha al disc i recorda què ha canviat des de l'última lectura.
+estructura: set (conjunt) i llistes
 """
 
 import os
