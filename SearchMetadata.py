@@ -2,6 +2,7 @@
 """
 SearchMetadata.py : Func6 - cercar imatges per metadades
 Cada cerca retorna una llista d'UUID (pot ser buida).
+estructura: cap (consulta ImageData)
 """
 
 
