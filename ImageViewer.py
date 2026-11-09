@@ -2,6 +2,7 @@
 """
 ImageViewer.py : Func4 - visualitzar imatges
 mode 0: només metadades | mode 1: metadades + imatge | mode 2: només imatge
+estructura: cap (consulta ImageData)
 """
 
 import os
