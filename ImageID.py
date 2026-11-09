@@ -2,6 +2,7 @@
 """
 ImageID.py : Func2 - generar identificadors (UUID) d'imatges
 Cada arxiu té un UUID. Guardem dos diccionaris per poder anar d'un a l'altre.
+estructura: dos diccionaris (dict)
 """
 
 import cfg
